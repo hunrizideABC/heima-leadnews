@@ -1,7 +1,11 @@
 package com.heima.user.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.heima.common.constants.ScheduleConstants;
+import com.heima.common.constants.UserConstants;
+import com.heima.common.redis.CacheService;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
 import com.heima.model.user.dtos.LoginDto;
@@ -9,8 +13,11 @@ import com.heima.model.user.pojos.ApUser;
 import com.heima.user.mapper.ApUserMapper;
 import com.heima.user.service.ApUserService;
 import com.heima.utils.common.AppJwtUtil;
+import com.heima.utils.thread.AppThreadLocalUtil;
+import com.heima.utils.thread.WmThreadLocalUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.DigestUtils;
@@ -23,6 +30,9 @@ import java.util.Map;
 @Transactional
 @Slf4j
 public class ApUserServiceImpl extends ServiceImpl<ApUserMapper, ApUser> implements ApUserService {
+
+    @Autowired
+    private CacheService cacheService;
     /**
      * app端登录功能
      * @param dto
@@ -37,7 +47,8 @@ public class ApUserServiceImpl extends ServiceImpl<ApUserMapper, ApUser> impleme
             if(dbUser == null){
                 return ResponseResult.errorResult(AppHttpCodeEnum.DATA_NOT_EXIST,"用户信息不存在");
             }
-
+            cacheService.delete(UserConstants.USER_LOGIN_KEY);
+            cacheService.set(UserConstants.USER_LOGIN_KEY , JSON.toJSONString(dbUser));
             //1.2 比对密码
             String salt = dbUser.getSalt();
             String password = dto.getPassword();
